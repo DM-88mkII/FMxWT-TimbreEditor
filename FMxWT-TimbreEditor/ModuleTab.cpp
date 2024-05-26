@@ -738,7 +738,6 @@ void CModuleTab::Copy(bool bShift)
 	if (bShift){
 		v.ToFormat(pCTimbreEditorDlg->GetSettingTab().GetFormatType(), Text);
 	} else {
-OutputDebugStringA("Copy\n");
 		nlohmann::json j = v;
 		Text = CString(j.dump().c_str());
 	}
@@ -773,7 +772,6 @@ void CModuleTab::Paste()
 		catch (...){}
 	}
 	if (!Result){
-OutputDebugStringA("Paste\n");
 		try {
 			auto j = nlohmann::json::parse(CStringA(Text).GetBuffer());
 			v = j.get<CIntermediate>();

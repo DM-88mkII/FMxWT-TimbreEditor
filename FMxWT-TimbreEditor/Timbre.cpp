@@ -296,11 +296,17 @@ void CTimbre::Play(int Note)
 		
 		Render();
 		
-		m_aWave = WAVE;
-		m_iWave = 0;//A
-		m_Rate = Control.aRATE[m_iWave].GetValue();
-		m_Read = 0;
-		m_Freq = (s_aFreq[Note] * (1<<m_LEN)) / 55555.0;
+		{	// 
+			Note += Control.KT.GetValue();
+			Note = (Note > 0)? Note: 0;
+			Note = (Note < std::size(s_aFreq))? Note: std::size(s_aFreq)-1;
+			
+			m_aWave = WAVE;
+			m_iWave = 0;//A
+			m_Rate = Control.aRATE[m_iWave].GetValue();
+			m_Read = 0;
+			m_Freq = (s_aFreq[Note] * (1<<m_LEN)) / 55555.0;
+		}
 	}
 }
 

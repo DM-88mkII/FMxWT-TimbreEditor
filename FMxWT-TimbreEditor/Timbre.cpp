@@ -22,6 +22,7 @@ CTimbre::CTimbre(int SampleRate)
 ,output_step(0x100000000ull / output_rate)
 ,output_pos(0)
 ,m_pFmChip(std::make_unique<FmChip<ymfm::ym2203>>(output_rate * 72, EChipType::YM2203))
+,WAVE(4)
 ,m_aWave(4)
 ,m_iWave(0)
 ,m_Rate(0)
@@ -44,7 +45,7 @@ CTimbre::CTimbre(int SampleRate)
 		Control.aRATE[2].SetValue(4);
 		Control.aRATE[3].SetValue(4);
 		
-		for (int i = 0; i < 4; ++i){
+		for (int i = 0; i < _countof(aOperator); ++i){
 			aOperator[i].EN.SetValue(1);
 			
 			aOperator[i].AL.SetValue(0);
@@ -71,10 +72,10 @@ IValue& CTimbre::GetValue(int x, int y)
 				case 0: return Control.EN;
 				case 1: return Control.ALG;
 				case 2: return Control.FB;
-				case 3: return Control.KML;
-				case 4: return Control.KMH;
-				case 5: return Control.BIT;
-				case 6: return Control.LEN;
+				case 3: return Control.NUM;
+				case 4: return Control.KML;
+				case 5: return Control.KMH;
+				case 6: break;
 				case 7: return Control.KT;
 				case 8: return Control.FDT;
 			}
@@ -102,6 +103,8 @@ IValue& CTimbre::GetValue(int x, int y)
 				case 2: return Control.aRATE[1];
 				case 3: return Control.aRATE[2];
 				case 4: return Control.aRATE[3];
+				case 5: return Control.BIT;
+				case 6: return Control.LEN;
 			}
 			break;
 		}
@@ -121,26 +124,38 @@ void CTimbre::OnBufferStart(std::vector<int>& aOutput)
 
 void CTimbre::SubmitSourceBuffer(std::vector<int>& aOutput)
 {
+	auto BIT = m_BIT;
+	auto LEN = m_LEN;
+	
 	for (auto& i : aOutput){
 		auto Read = (int)std::floor(m_Read);
 		if (m_iWave < m_aWave.size() && Read < m_aWave[m_iWave].size()){
-			i += m_aWave[m_iWave][Read] << (14-m_BIT);
+			i += m_aWave[m_iWave][Read] << (14-BIT);
 			
 			m_Read += m_Freq;
-			if (m_Read >= (1<<m_LEN)) m_Read -= (1<<m_LEN);
+			if (m_Read >= (1<<LEN)) m_Read -= (1<<LEN);
 		} else {
 			i = 0;
 		}
 	}
 	
 	if (m_Rate >= 0 && m_Rate-- == 0){
-		if (m_iWave < 2){
-			m_Rate = Control.aRATE[++m_iWave].GetValue();
-			//m_Read = 0;
-		} else if (m_iWave == 2){
-			m_Rate = Control.aRATE[m_iWave].GetValue();
-		} else {
-			++m_iWave;
+		switch (m_iWave){
+			case 0://A
+			case 1://D
+			{
+				m_Rate = Control.aRATE[++m_iWave].GetValue();
+				//m_Read = 0;
+				break;
+			}
+			case 2:{//S
+				m_Rate = Control.aRATE[m_iWave].GetValue();
+				break;
+			}
+			case 3:{//R
+				++m_iWave;
+				break;
+			}
 		}
 	}
 }
@@ -158,6 +173,9 @@ void CTimbre::KeyOn()
 
 std::vector<int> CTimbre::Render(int L1, int L2, int L3, int L4)
 {
+	auto BIT = Control.BIT.GetValue();
+	auto LEN = Control.LEN.GetValue();
+	
 	L1 += aOperator[0].TL.GetValue();
 	L2 += aOperator[1].TL.GetValue();
 	L3 += aOperator[2].TL.GetValue();
@@ -200,7 +218,7 @@ std::vector<int> CTimbre::Render(int L1, int L2, int L3, int L4)
 	m_pFmChip->write(0xb2, ((Control.FB.GetValue()<<3) | Control.ALG.GetValue()));
 	
 	{	// 
-		auto BlockFNumber = 0x0400 | ((6-(m_LEN-4))<<11);
+		auto BlockFNumber = ((6-(LEN-4))<<11) | 0x0400;
 		m_pFmChip->write(0xa6, BlockFNumber>>8);
 		m_pFmChip->write(0xa2, BlockFNumber&0xff);
 	}
@@ -216,7 +234,7 @@ std::vector<int> CTimbre::Render(int L1, int L2, int L3, int L4)
 	}
 	
 	int32_t Limit = 0x1fff;
-	auto aOverSampling = std::vector<int>(1ULL<<(m_LEN+1));
+	auto aOverSampling = std::vector<int>(1ULL<<(LEN+1));
 	for (auto& i : aOverSampling){
 		int32_t outputs[1] = {0};
 		m_pFmChip->generate(output_pos, output_step, outputs);
@@ -227,10 +245,10 @@ std::vector<int> CTimbre::Render(int L1, int L2, int L3, int L4)
 	}
 	
 	int iOverSampling = 0;
-	auto aOutput = std::vector<int>(1ULL<<m_LEN);
+	auto aOutput = std::vector<int>(1ULL<<LEN);
 	for (auto& i : aOutput){
 		i = aOverSampling[iOverSampling];
-		i >>= (14-m_BIT);
+		i >>= (14-BIT);
 		iOverSampling += 2;
 	}
 	
@@ -258,13 +276,10 @@ static const double s_aFreq[]={
 
 void CTimbre::Render()
 {
-	m_BIT = Control.BIT.GetValue();
-	m_LEN = Control.LEN.GetValue();
-	
-	m_aWave[0] = Render(aOperator[0].AL.GetValue(), aOperator[1].AL.GetValue(), aOperator[2].AL.GetValue(), aOperator[3].AL.GetValue());
-	m_aWave[1] = Render(aOperator[0].DL.GetValue(), aOperator[1].DL.GetValue(), aOperator[2].DL.GetValue(), aOperator[3].DL.GetValue());
-	m_aWave[2] = Render(aOperator[0].SL.GetValue(), aOperator[1].SL.GetValue(), aOperator[2].SL.GetValue(), aOperator[3].SL.GetValue());
-	m_aWave[3] = Render(aOperator[0].RL.GetValue(), aOperator[1].RL.GetValue(), aOperator[2].RL.GetValue(), aOperator[3].RL.GetValue());
+	WAVE[0] = Render(aOperator[0].AL.GetValue(), aOperator[1].AL.GetValue(), aOperator[2].AL.GetValue(), aOperator[3].AL.GetValue());
+	WAVE[1] = Render(aOperator[0].DL.GetValue(), aOperator[1].DL.GetValue(), aOperator[2].DL.GetValue(), aOperator[3].DL.GetValue());
+	WAVE[2] = Render(aOperator[0].SL.GetValue(), aOperator[1].SL.GetValue(), aOperator[2].SL.GetValue(), aOperator[3].SL.GetValue());
+	WAVE[3] = Render(aOperator[0].RL.GetValue(), aOperator[1].RL.GetValue(), aOperator[2].RL.GetValue(), aOperator[3].RL.GetValue());
 };
 
 
@@ -276,10 +291,13 @@ void CTimbre::Play(int Note)
 		
 		m_bPlay = true;
 		m_bKeyOn = false;
+		m_BIT = Control.BIT.GetValue();
+		m_LEN = Control.LEN.GetValue();
 		
 		Render();
 		
-		m_iWave = 0;
+		m_aWave = WAVE;
+		m_iWave = 0;//A
 		m_Rate = Control.aRATE[m_iWave].GetValue();
 		m_Read = 0;
 		m_Freq = (s_aFreq[Note] * (1<<m_LEN)) / 55555.0;
@@ -293,7 +311,7 @@ void CTimbre::Stop()
 	if (m_bPlay){
 		m_bPlay = false;
 		
-		m_iWave = 3;
+		m_iWave = 3;//R
 		m_Rate = Control.aRATE[m_iWave].GetValue();
 		//m_Read = 0;
 	}
@@ -306,6 +324,7 @@ void CTimbre::SetIntermediate(CIntermediate v)
 	Control.EN.SetValue(v.Control.EN);
 	Control.ALG.SetValue(v.Control.ALG);
 	Control.FB.SetValue(v.Control.FB);
+	Control.NUM.SetValue(v.Control.NUM);
 	Control.KML.SetValue(v.Control.KML);
 	Control.KMH.SetValue(v.Control.KMH);
 	Control.KT.SetValue(v.Control.KT);
@@ -315,8 +334,10 @@ void CTimbre::SetIntermediate(CIntermediate v)
 	Control.aRATE[1].SetValue(v.Control.aRATE[1]);
 	Control.aRATE[2].SetValue(v.Control.aRATE[2]);
 	Control.aRATE[3].SetValue(v.Control.aRATE[3]);
+	Control.BIT.SetValue(v.Control.BIT);
+	Control.LEN.SetValue(v.Control.LEN);
 	
-	for (int i = 0; i < 4; ++i){
+	for (int i = 0; i < _countof(aOperator); ++i){
 		aOperator[i].EN.SetValue(v.aOperator[i].EN);
 		aOperator[i].AL.SetValue(v.aOperator[i].AL);
 		aOperator[i].DL.SetValue(v.aOperator[i].DL);
@@ -325,6 +346,8 @@ void CTimbre::SetIntermediate(CIntermediate v)
 		aOperator[i].TL.SetValue(v.aOperator[i].TL);
 		aOperator[i].MT.SetValue(v.aOperator[i].MT);
 	}
+	
+	WAVE = v.WAVE;
 }
 
 
@@ -333,9 +356,12 @@ CIntermediate CTimbre::GetIntermediate()
 {
 	CIntermediate v;
 	
+	Render();
+	
 	v.Control.EN = Control.EN.GetValue();
 	v.Control.ALG = Control.ALG.GetValue();
 	v.Control.FB = Control.FB.GetValue();
+	v.Control.NUM = Control.NUM.GetValue();
 	v.Control.KML = Control.KML.GetValue();
 	v.Control.KMH = Control.KMH.GetValue();
 	v.Control.KT = Control.KT.GetValue();
@@ -345,8 +371,10 @@ CIntermediate CTimbre::GetIntermediate()
 	v.Control.aRATE[1] = Control.aRATE[1].GetValue();
 	v.Control.aRATE[2] = Control.aRATE[2].GetValue();
 	v.Control.aRATE[3] = Control.aRATE[3].GetValue();
+	v.Control.BIT = Control.BIT.GetValue();
+	v.Control.LEN = Control.LEN.GetValue();
 	
-	for (int i = 0; i < 4; ++i){
+	for (int i = 0; i < _countof(aOperator); ++i){
 		v.aOperator[i].EN = aOperator[i].EN.GetValue();
 		v.aOperator[i].AL = aOperator[i].AL.GetValue();
 		v.aOperator[i].DL = aOperator[i].DL.GetValue();
@@ -355,6 +383,8 @@ CIntermediate CTimbre::GetIntermediate()
 		v.aOperator[i].TL = aOperator[i].TL.GetValue();
 		v.aOperator[i].MT = aOperator[i].MT.GetValue();
 	}
+	
+	v.WAVE = WAVE;
 	
 	return std::move(v);
 }

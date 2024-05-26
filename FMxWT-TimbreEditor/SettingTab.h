@@ -26,6 +26,9 @@ class CSettingTab : public CDialogEx
 		DECLARE_MESSAGE_MAP()
 	
 	protected:
+		CComboBox m_CComboBoxFormatType;
+		CButton m_CButtonSwapCopyFormat;
+		CButton m_CButtonAutoCopyFormat;
 		CComboBox m_CComboBoxSynthesizeFreq;
 		CSliderCtrl m_CSliderCtrlLatency;
 		CComboBox m_CComboBoxFilter;
@@ -36,6 +39,9 @@ class CSettingTab : public CDialogEx
 		
 		virtual BOOL OnInitDialog();
 		virtual BOOL PreTranslateMessage(MSG* pMsg);
+		afx_msg void OnCbnSelchangeSettingCopyFormatExtCombo();
+		afx_msg void OnBnClickedSettingSwapCopyFormatCheck();
+		afx_msg void OnBnClickedSrttingAutoCopyFormatCheck();
 		afx_msg void OnCbnSelchangeSettingSynthesizeFreqCombo();
 		afx_msg void OnNMCustomdrawSettingLatencySlider(NMHDR* pNMHDR, LRESULT* pResult);
 		afx_msg void OnCbnSelchangeSettingFilterCombo();
@@ -45,11 +51,20 @@ class CSettingTab : public CDialogEx
 		afx_msg void OnNMCustomdrawSettingDcCutRateSlider(NMHDR* pNMHDR, LRESULT* pResult);
 	
 	public:
+		enum EFormatType
+		{
+			MgsDrv,
+			Num,
+		};
 		enum ESynthesizeFreq
 		{
 			Hz55555,
 			Hz55466,
 		};
+		EFormatType GetFormatType();
+		void SetFormatType(EFormatType EFormatType);
+		bool IsSwapCopyFormat();
+		bool IsAutoCopyFormat();
 		ESynthesizeFreq GetSynthesizeFreq();
 		int GetSynthesizeFreq(ESynthesizeFreq ESynthesizeFreq);
 		int GetLatency();

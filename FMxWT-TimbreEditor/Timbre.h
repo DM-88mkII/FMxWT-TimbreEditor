@@ -26,18 +26,15 @@ class CTimbre
 			
 			CValue<1, 0, 7> ALG;
 			CValue<1, 0, 7> FB;
-			
+			CValue<3, 0, 999> NUM;
 			CValue<3, 0, 128> KML;
 			CValue<3, 0, 128> KMH;
-			
-			CValue<1, 4, 8> BIT;
-			CValue<1, 4, 8> LEN;
-			
 			CValue<4, -128, 128> KT;
 			CValue<4, -999, 999> FDT;
 			
-			
 			CValue<2, 0, 15> aRATE[4];
+			CValue<1, 4, 8> BIT;
+			CValue<1, 4, 8> LEN;
 		};
 		Control Control;
 		
@@ -53,6 +50,8 @@ class CTimbre
 			CValue<1, 1, 8> MT;
 		};
 		Operator aOperator[4];
+		
+		std::vector<std::vector<int>> WAVE;
 		
 		int m_Note;
 		bool m_bPlay;

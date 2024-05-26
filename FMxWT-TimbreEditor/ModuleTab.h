@@ -94,6 +94,10 @@ class CModuleTab : public CDialogEx, IXAudio2VoiceCallback
 		void Play(bool bShift, int Note, CString Key);
 		void Stop();
 		
+		bool ClipboardCopy(CString Text);
+		CString ClipboardPaste();
+		void Copy(bool bShift);
+		void Paste();
 		void Undo();
 		void Rotate();
 		

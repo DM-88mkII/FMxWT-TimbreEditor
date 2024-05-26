@@ -43,10 +43,10 @@ CModuleTab::CModuleTab(CWnd* pParent /*=nullptr*/)
 	{	IDC_TIMBRE_EN_STATIC,
 		IDC_TIMBRE_ALG_STATIC,
 		IDC_TIMBRE_FB_STATIC,
+		IDC_TIMBRE_NUM_STATIC,
 		IDC_TIMBRE_KML_STATIC,
 		IDC_TIMBRE_KMH_STATIC,
-		IDC_TIMBRE_BIT_STATIC,
-		IDC_TIMBRE_LEN_STATIC,
+		IDC_TIMBRE_VOID_STATIC,
 		IDC_TIMBRE_KT_STATIC,
 		IDC_TIMBRE_DT_STATIC,
 	},
@@ -95,8 +95,8 @@ CModuleTab::CModuleTab(CWnd* pParent /*=nullptr*/)
 		IDC_TIMBRE_DR_STATIC,
 		IDC_TIMBRE_SR_STATIC,
 		IDC_TIMBRE_RR_STATIC,
-		IDC_TIMBRE_VOID1_STATIC2,
-		IDC_TIMBRE_VOID2_STATIC2,
+		IDC_TIMBRE_BIT_STATIC,
+		IDC_TIMBRE_LEN_STATIC,
 		IDC_TIMBRE_VOID3_STATIC2,
 		IDC_TIMBRE_VOID4_STATIC2,
 	},
@@ -211,6 +211,8 @@ BOOL CModuleTab::PreTranslateMessage(MSG* pMsg)
 					case VK_LEFT:{		FocusPrevTab();	return TRUE;	}
 					case VK_RIGHT:{		FocusNextTab();	return TRUE;	}
 					
+					case 'C':{			Copy(bShift);	return TRUE;	}
+					case 'V':{			Paste();		return TRUE;	}
 					case 'Z':{			Undo();			return TRUE;	}
 					
 					case 'O':{			OnBnClickedModuleLoadButton();	return TRUE;	}
@@ -679,6 +681,115 @@ void CModuleTab::Play(bool bShift, int Note, CString Key)
 void CModuleTab::Stop()
 {
 	for (auto CTimbre : m_aCTimbre) CTimbre->Stop();
+}
+
+
+
+bool CModuleTab::ClipboardCopy(CString Text)
+{
+	if (OpenClipboard() == FALSE) return false;
+	if (EmptyClipboard() == FALSE) return false;
+	
+	{	// 
+		auto sText = (Text.GetLength() + 1) * sizeof(TCHAR);
+		auto hText = GlobalAlloc(GMEM_MOVEABLE, sText);
+		auto pText = (hText != NULL)? GlobalLock(hText): NULL;
+		if (pText != NULL) memcpy_s(pText, sText, Text.LockBuffer(), sText);
+		if (hText != NULL) GlobalUnlock(hText);
+		Text.UnlockBuffer();
+		
+		auto Format = (sizeof(TCHAR) == sizeof(WCHAR))? CF_UNICODETEXT: CF_TEXT;
+		auto bResult = (SetClipboardData(Format, hText) != NULL);
+		CloseClipboard();
+		return bResult;
+	}
+}
+
+
+
+CString CModuleTab::ClipboardPaste()
+{
+	COleDataObject DataObject;
+	auto Format = (sizeof(TCHAR) == sizeof(WCHAR))? CF_UNICODETEXT: CF_TEXT;
+	if (DataObject.AttachClipboard() && DataObject.IsDataAvailable(Format)){
+		auto hText = DataObject.GetGlobalData(Format);
+		auto pText = (LPCTSTR)GlobalLock(hText);
+		CString Text(pText);
+		GlobalUnlock(hText);
+		
+		return std::move(Text);
+	}
+	return std::move(CString());
+}
+
+
+
+void CModuleTab::Copy(bool bShift)
+{
+	FixParam();
+	
+	auto iItem = m_CTabCtrl.GetCurSel();
+	auto v = m_aCTimbre[iItem]->GetIntermediate();
+	CString Text;
+	
+	auto pCTimbreEditorDlg = (CTimbreEditorDlg*)GetTopLevelParent();
+	bShift ^= pCTimbreEditorDlg->GetSettingTab().IsSwapCopyFormat();
+	
+	if (bShift){
+		v.ToFormat(pCTimbreEditorDlg->GetSettingTab().GetFormatType(), Text);
+	} else {
+OutputDebugStringA("Copy\n");
+		nlohmann::json j = v;
+		Text = CString(j.dump().c_str());
+	}
+	if (ClipboardCopy(Text)){
+		Log(_T("Copy"));
+	} else {
+		Log(_T("Copy Error"));
+	}
+}
+
+
+
+void CModuleTab::Paste()
+{
+	FixParam();
+	
+	CIntermediate v;
+	auto Text = ClipboardPaste();
+	auto Result = false;
+	
+	for (int EFormatType = CSettingTab::EFormatType::Num; --EFormatType >= 0 && !Result;){
+		try {
+			v.FromFormat((CSettingTab::EFormatType)EFormatType, Text);
+			Result = true;
+			
+			auto pCTimbreEditorDlg = (CTimbreEditorDlg*)GetTopLevelParent();
+			auto& rCSettingTab = pCTimbreEditorDlg->GetSettingTab();
+			if (rCSettingTab.IsAutoCopyFormat()){
+				rCSettingTab.SetFormatType((CSettingTab::EFormatType)EFormatType);
+			}
+		}
+		catch (...){}
+	}
+	if (!Result){
+OutputDebugStringA("Paste\n");
+		try {
+			auto j = nlohmann::json::parse(CStringA(Text).GetBuffer());
+			v = j.get<CIntermediate>();
+			Result = true;
+		}
+		catch (...){}
+	}
+	if (Result){
+		auto iItem = m_CTabCtrl.GetCurSel();
+		m_aCTimbre[iItem]->SetIntermediate(v);
+		DrawAllParam();
+		
+		Log(_T("Paste"));
+	} else {
+		Log(_T("Paste Error"));
+	}
 }
 
 

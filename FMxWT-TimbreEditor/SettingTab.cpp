@@ -28,6 +28,9 @@ CSettingTab::CSettingTab(CWnd* pParent /*=nullptr*/)
 void CSettingTab::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_SETTING_COPY_FORMAT_COMBO, m_CComboBoxFormatType);
+	DDX_Control(pDX, IDC_SETTING_SWAP_COPY_FORMAT_CHECK, m_CButtonSwapCopyFormat);
+	DDX_Control(pDX, IDC_SETTING_AUTO_COPY_FORMAT_CHECK, m_CButtonAutoCopyFormat);
 	DDX_Control(pDX, IDC_SETTING_LATENCY_SLIDER, m_CSliderCtrlLatency);
 	DDX_Control(pDX, IDC_SETTING_FILTER_COMBO, m_CComboBoxFilter);
 	DDX_Control(pDX, IDC_SETTING_CUTOFF_SLIDER, m_CSliderCtrlCutoff);
@@ -40,6 +43,9 @@ void CSettingTab::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CSettingTab, CDialogEx)
+	ON_CBN_SELCHANGE(IDC_SETTING_COPY_FORMAT_COMBO, &CSettingTab::OnCbnSelchangeSettingCopyFormatExtCombo)
+	ON_BN_CLICKED(IDC_SETTING_SWAP_COPY_FORMAT_CHECK, &CSettingTab::OnBnClickedSettingSwapCopyFormatCheck)
+	ON_BN_CLICKED(IDC_SETTING_AUTO_COPY_FORMAT_CHECK, &CSettingTab::OnBnClickedSrttingAutoCopyFormatCheck)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_SETTING_LATENCY_SLIDER, &CSettingTab::OnNMCustomdrawSettingLatencySlider)
 	ON_CBN_SELCHANGE(IDC_SETTING_FILTER_COMBO, &CSettingTab::OnCbnSelchangeSettingFilterCombo)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_SETTING_CUTOFF_SLIDER, &CSettingTab::OnNMCustomdrawSettingCutoffSlider)
@@ -65,6 +71,13 @@ BOOL CSettingTab::OnInitDialog()
 		rCComboBox.GetParent()->ScreenToClient(&Rect);
 		rCComboBox.MoveWindow(&Rect);
 	};
+	
+	m_CComboBoxFormatType.SetCurSel(theApp.GetValue(_T("FormatType"), (int)EFormatType::MgsDrv));
+	SetDropdownSize(m_CComboBoxFormatType);
+	
+	m_CButtonSwapCopyFormat.SetCheck(theApp.GetValue(_T("SwapCopyFormat"), BST_UNCHECKED));
+	
+	m_CButtonAutoCopyFormat.SetCheck(theApp.GetValue(_T("AutoCopyFormat"), BST_UNCHECKED));
 	
 	m_CSliderCtrlLatency.SetRange(1, 100);
 	m_CSliderCtrlLatency.SetPos(theApp.GetValue(_T("Latency"), 16));
@@ -106,6 +119,27 @@ BOOL CSettingTab::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+
+
+void CSettingTab::OnCbnSelchangeSettingCopyFormatExtCombo()
+{
+	theApp.SetValue(_T("FormatType"), (int)GetFormatType());
+}
+
+
+
+void CSettingTab::OnBnClickedSettingSwapCopyFormatCheck()
+{
+	theApp.SetValue(_T("SwapCopyFormat"), (IsSwapCopyFormat())? BST_CHECKED: BST_UNCHECKED);
+}
+
+
+
+void CSettingTab::OnBnClickedSrttingAutoCopyFormatCheck()
+{
+	theApp.SetValue(_T("AutoCopyFormat"), (IsAutoCopyFormat())? BST_CHECKED: BST_UNCHECKED);
 }
 
 
@@ -163,6 +197,34 @@ void CSettingTab::OnNMCustomdrawSettingDcCutRateSlider(NMHDR* pNMHDR, LRESULT* p
 	LPNMCUSTOMDRAW pNMCD = reinterpret_cast<LPNMCUSTOMDRAW>(pNMHDR);
 	theApp.SetValue(_T("DCCutRate"), (int)((GetDCCutRate() - 0.99) * 1000.0));
 	*pResult = 0;
+}
+
+
+
+CSettingTab::EFormatType CSettingTab::GetFormatType()
+{
+	return (EFormatType)m_CComboBoxFormatType.GetCurSel();
+}
+
+
+
+void CSettingTab::SetFormatType(EFormatType EFormatType)
+{
+	m_CComboBoxFormatType.SetCurSel((int)EFormatType);
+}
+
+
+
+bool CSettingTab::IsSwapCopyFormat()
+{
+	return (m_CButtonSwapCopyFormat.GetCheck() == BST_CHECKED);
+}
+
+
+
+bool CSettingTab::IsAutoCopyFormat()
+{
+	return (m_CButtonAutoCopyFormat.GetCheck() == BST_CHECKED);
 }
 
 

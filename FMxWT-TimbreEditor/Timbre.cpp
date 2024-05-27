@@ -75,7 +75,7 @@ IValue& CTimbre::GetValue(int x, int y)
 				case 3: return Control.NUM;
 				case 4: return Control.KML;
 				case 5: return Control.KMH;
-				case 6: break;
+				case 6: return Control.EPR;
 				case 7: return Control.KT;
 				case 8: return Control.FDT;
 			}
@@ -145,7 +145,7 @@ void CTimbre::SubmitSourceBuffer(std::vector<int>& aOutput)
 			case 1://D
 			{
 				m_Rate = Control.aRATE[++m_iWave].GetValue();
-				//m_Read = 0;
+				if (m_EPR != 0) m_Read = 0;
 				break;
 			}
 			case 2:{//S
@@ -291,6 +291,7 @@ void CTimbre::Play(int Note)
 		
 		m_bPlay = true;
 		m_bKeyOn = false;
+		m_EPR = Control.EPR.GetValue();
 		m_BIT = Control.BIT.GetValue();
 		m_LEN = Control.LEN.GetValue();
 		
@@ -319,7 +320,7 @@ void CTimbre::Stop()
 		
 		m_iWave = 3;//R
 		m_Rate = Control.aRATE[m_iWave].GetValue();
-		//m_Read = 0;
+		if (m_EPR != 0) m_Read = 0;
 	}
 }
 
@@ -333,6 +334,7 @@ void CTimbre::SetIntermediate(CIntermediate v)
 	Control.NUM.SetValue(v.Control.NUM);
 	Control.KML.SetValue(v.Control.KML);
 	Control.KMH.SetValue(v.Control.KMH);
+	Control.EPR.SetValue(v.Control.EPR);
 	Control.KT.SetValue(v.Control.KT);
 	Control.FDT.SetValue(v.Control.FDT);
 	
@@ -370,6 +372,7 @@ CIntermediate CTimbre::GetIntermediate()
 	v.Control.NUM = Control.NUM.GetValue();
 	v.Control.KML = Control.KML.GetValue();
 	v.Control.KMH = Control.KMH.GetValue();
+	v.Control.EPR = Control.EPR.GetValue();
 	v.Control.KT = Control.KT.GetValue();
 	v.Control.FDT = Control.FDT.GetValue();
 	

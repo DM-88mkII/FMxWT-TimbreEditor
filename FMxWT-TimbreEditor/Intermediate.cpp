@@ -46,6 +46,7 @@ void CIntermediate::to_json(nlohmann::json& j) const
 				{"NUM",		Control.NUM,},
 				{"KML",		Control.KML,},
 				{"KMH",		Control.KMH,},
+				{"EPR",		Control.EPR,},
 				{"KT",		Control.KT,	},
 				{"FDT",		Control.FDT,},
 				{"AR",		Control.aRATE[0],},
@@ -97,6 +98,7 @@ void CIntermediate::from_json(const nlohmann::json& j)
 				Control.NUM = o.at("NUM").get<int>();
 				Control.KML = o.value("KML", 0);
 				Control.KMH = o.value("KMH", 128);
+				Control.EPR = o.value("EPR", 0);
 				Control.KT = o.at("KT").get<int>();
 				Control.FDT = o.at("FDT").get<int>();
 				Control.aRATE[0] = o.at("AR").get<int>();

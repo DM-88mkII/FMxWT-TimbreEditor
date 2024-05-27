@@ -67,7 +67,7 @@ HBRUSH CTimbreTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 		case IDC_TIMBRE_NUM_STATIC:{	SetColor(pDC, 3, 0); break; }
 		case IDC_TIMBRE_KML_STATIC:{	SetColor(pDC, 4, 0); break; }
 		case IDC_TIMBRE_KMH_STATIC:{	SetColor(pDC, 5, 0); break; }
-		case IDC_TIMBRE_VOID_STATIC:{	SetColor(pDC, 6, 0); break; }
+		case IDC_TIMBRE_EPR_STATIC:{	SetColor(pDC, 6, 0); break; }
 		case IDC_TIMBRE_KT_STATIC:{		SetColor(pDC, 7, 0); break; }
 		case IDC_TIMBRE_DT_STATIC:{		SetColor(pDC, 8, 0); break; }
 		

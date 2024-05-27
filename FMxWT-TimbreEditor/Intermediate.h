@@ -23,6 +23,7 @@ struct CIntermediate
 			int NUM;
 			int KML;
 			int KMH;
+			int EPR;
 			int KT;
 			int FDT;
 			

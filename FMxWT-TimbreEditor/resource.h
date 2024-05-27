@@ -121,8 +121,8 @@
 #define IDC_TIMBRE_AR_STATIC            1072
 #define IDC_TIMBRE_VOID4_STATIC         1073
 #define IDC_TIMBRE_DS_STATIC            1073
-#define IDC_TIMBRE_KMH_STATIC3          1073
 #define IDC_TIMBRE_VOID_STATIC          1073
+#define IDC_TIMBRE_EPR_STATIC           1073
 #define IDC_TIMBRE_VOID5_STATIC         1074
 #define IDC_TIMBRE_DR_STATIC            1074
 #define IDC_TIMBRE_FDE_STATIC           1075

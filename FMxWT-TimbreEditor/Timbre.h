@@ -29,6 +29,7 @@ class CTimbre
 			CValue<3, 0, 999> NUM;
 			CValue<3, 0, 128> KML;
 			CValue<3, 0, 128> KMH;
+			CValue<1, 0, 1> EPR;
 			CValue<4, -128, 128> KT;
 			CValue<4, -999, 999> FDT;
 			
@@ -56,6 +57,7 @@ class CTimbre
 		int m_Note;
 		bool m_bPlay;
 		bool m_bKeyOn;
+		int m_EPR;
 		int m_BIT;
 		int m_LEN;
 		
